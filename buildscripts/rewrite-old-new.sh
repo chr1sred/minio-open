@@ -16,8 +16,7 @@ fi
 
 function download_old_release() {
 	if [ ! -f minio.RELEASE.2020-10-28T08-16-50Z ]; then
-		curl --silent -O https://dl.minio.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2020-10-28T08-16-50Z
-		chmod a+x minio.RELEASE.2020-10-28T08-16-50Z
+		bash "$(git rev-parse --show-toplevel)/buildscripts/install-minio-release.sh" RELEASE.2020-10-28T08-16-50Z ./minio.RELEASE.2020-10-28T08-16-50Z
 	fi
 }
 

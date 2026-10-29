@@ -44,8 +44,7 @@ minio server --address 127.0.0.1:9004 "http://127.0.0.1:9003/tmp/siteb/data/dist
 echo "done"
 
 if [ ! -f ./mc ]; then
-	wget --quiet -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 export MC_HOST_sitea=http://minioadmin:minioadmin@127.0.0.1:9001

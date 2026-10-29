@@ -20,8 +20,7 @@ function cleanup() {
 cleanup
 
 if [ ! -f ./mc ]; then
-	wget --quiet -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 export RELEASE=RELEASE.2023-08-29T23-07-35Z

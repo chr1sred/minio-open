@@ -9,8 +9,7 @@ rm -rf /tmp/xl
 rm -rf /tmp/xltier
 
 if [ ! -f ./mc ]; then
-	wget --quiet -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 export CI=true
