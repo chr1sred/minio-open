@@ -53,3 +53,6 @@ s3-check-md5
 s3-verify
 xattr
 xl-meta
+
+# MinIO Open: console vendorizado precisa de todos os arquivos (ex.: api/operations/inspect)
+!third_party/console/**
