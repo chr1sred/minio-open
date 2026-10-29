@@ -1,89 +1,98 @@
 # MinIO Open — guia de implantação (CapRover + Typebot)
 
-Este fork devolve ao MinIO tudo o que a comunidade perdeu nas últimas versões
-e empacota o servidor para subir em poucos cliques numa VPS pequena com
-CapRover, já integrado ao Typebot.
+Guia completo para subir o MinIO Open numa VPS com CapRover e ligá-lo ao
+Typebot. Testado numa VPS Debian 13 com 3 vCPU, 4 GB de RAM e 65 GB de disco.
+O resumo do projeto está no [README principal](../README.md).
 
-## O que muda em relação ao MinIO oficial
+**Tempo total:** ~15 minutos.
 
-| Recurso | MinIO oficial (master / 2025) | MinIO Open (este fork) |
-|---|---|---|
-| Console: usuários, grupos, políticas | ❌ removido (só Object Browser) | ✅ |
-| Console: OpenID / LDAP | ❌ removido | ✅ |
-| Console: Lifecycle (expirar/mover objetos) | ❌ removido desde nov/2024 | ✅ |
-| Console: Tiering, Site Replication | ❌ removido desde nov/2024 | ✅ |
-| Console: Eventos, notificações, cotas, replicação de bucket | ❌ removido | ✅ |
-| Console: Configurações do servidor, monitoramento, logs, trace | ❌ removido | ✅ |
-| Imagens Docker / binários oficiais | ❌ não são mais publicados | ✅ imagem própria no GHCR (GitHub Actions) |
-| Correções do servidor de 2025 | ✅ | ✅ (servidor do `master` mais recente) |
-| Configuração automática p/ Typebot | — | ✅ bucket + pasta pública + usuário dedicado |
-| Login do console atrás de proxy (CapRover) | ⚠️ falha se o domínio público não responder de dentro da VPS | ✅ `MINIO_CONSOLE_LOCAL_API=on` |
-| Padrões para VPS de 2–4 GB | — | ✅ `MINIO_MEMLIMIT`, scanner lento, imagem Alpine enxuta |
-
-Como foi feito: o servidor continua sendo o `master` mais recente; só o
-console (`github.com/minio/console`) foi fixado na **v1.7.3** — a última versão
-com a interface administrativa completa — copiada em `third_party/console`
-com um patch mínimo de compatibilidade com o `minio-go` atual.
+| Etapa | O que acontece |
+|---|---|
+| [1. Imagem](#passo-1--imagem-docker) | Imagem pronta no GHCR (automático) |
+| [2. Criar os apps](#passo-2--criar-os-apps-no-caprover-one-click) | Template One-Click cria S3 + Console |
+| [3. HTTPS](#passo-3--https) | Certificados nos dois apps |
+| [4. Conferir](#passo-4--conferir-logs-e-console) | Logs do bootstrap + console |
+| [5. Typebot](#passo-5--configurar-o-typebot) | Variáveis `S3_*` no builder e viewer |
+| [6. Testar](#passo-6--testar) | Upload real pelo Typebot |
 
 ---
 
-## Passo 1 — Publicar a imagem (automático)
+## Passo 1 — Imagem Docker
 
-A cada `push` neste branch, o workflow **“MinIO Open image”**
-(`.github/workflows/open-image.yml`) compila a imagem e publica em:
+A cada push no `master`, o workflow **“MinIO Open image”**
+([`.github/workflows/open-image.yml`](../.github/workflows/open-image.yml))
+compila e publica:
 
 ```
 ghcr.io/chr1sred/minio-open:latest
 ```
 
-1. No GitHub: **Actions** → habilite os workflows do fork, se pedido →
-   abra **MinIO Open image** → aguarde ficar verde (~10–15 min na 1ª vez).
-   Também dá para rodar manualmente em **Run workflow**.
-2. Em **github.com/chr1sred → Packages → minio-open → Package settings**,
-   deixe a visibilidade como **Public** (assim o CapRover baixa sem login).
-   Prefere privado? Cadastre o GHCR em **CapRover → Cluster → Docker Registries**
-   com um token (`read:packages`).
+- Confira em **GitHub → Actions → MinIO Open image** que o último run está verde (~5 min).
+- O pacote herda a visibilidade do repositório (público), então o CapRover
+  baixa a imagem sem login. Se o repositório for privado, cadastre o GHCR em
+  **CapRover → Cluster → Docker Registries** com um token `read:packages`.
 
-> Por que não compilar na VPS? Compilar o MinIO usa 2–3 GB de RAM e ~10 min
-> de CPU. Na sua VPS (3 vCPU / 4 GB) isso pode derrubar os outros apps.
-> Mesmo assim, há a [alternativa B](#alternativa-b--compilar-na-própria-vps).
+> **Por que não compilar na VPS?** Compilar o MinIO consome 2–3 GB de RAM e
+> vários minutos de CPU, o que pode derrubar os outros apps de uma VPS de 4 GB.
+> Se mesmo assim quiser, veja a [alternativa B](#alternativa-b--compilar-na-própria-vps).
 
 ## Passo 2 — Criar os apps no CapRover (One-Click)
 
-1. CapRover → **Apps** → **One-Click Apps/Databases**.
-2. Role até o fim e escolha **`>> TEMPLATE <<`**.
-3. Cole **todo** o conteúdo de
-   [`deploy/caprover/minio-open-one-click.yml`](caprover/minio-open-one-click.yml).
-4. Preencha o formulário (os padrões já servem; senhas são geradas
-   automaticamente — **anote-as**):
+> ⚠️ Não use **“Create from scratch”**: ele cria um app só, vazio. O template
+> cria os **dois** apps necessários, já configurados.
 
-| Campo | Padrão | Para que serve |
+1. **Apps → Apps/Bancos de Dados One-Click**.
+2. Busque por `template` e escolha **`>> TEMPLATE <<`**.
+3. Na caixa **Custom One-Click App Template**, cole o **conteúdo** do arquivo
+   (não a URL, porque o CapRover não baixa links):
+   - abra o [template em texto puro](https://raw.githubusercontent.com/chr1sred/minio-open/master/deploy/caprover/minio-open-one-click.yml);
+   - **Ctrl/Cmd + A**, copie e cole na caixa;
+   - clique em **Próximo**.
+4. Preencha o formulário:
+
+| Campo | Valor recomendado | Observação |
 |---|---|---|
-| Nome do app | ex.: `minio` | Gera `minio.seudominio` (S3) e `minio-console.seudominio` |
-| Imagem | `ghcr.io/chr1sred/minio-open:latest` | Imagem do passo 1 |
-| Usuário / senha admin | `admin` / aleatória | Login do console |
-| Bucket do Typebot | `typebot` | Criado sozinho, com `public/` liberado para leitura |
-| Usuário/senha S3 do Typebot | `typebot` / aleatória | Chave restrita ao bucket (o Typebot nunca usa o admin) |
-| Limite de memória | `1GiB` | Teto de RAM do MinIO |
+| App Name | `minio-open` | Não reutilize o nome de um app que já exista (ex.: um `minio` antigo) |
+| Imagem Docker | `ghcr.io/chr1sred/minio-open:latest` | Padrão |
+| Usuário admin | `admin` | Login do console |
+| Senha admin | gerada automaticamente | **Anote** |
+| Bucket do Typebot | `typebot` | Criado com `public/` liberado para leitura |
+| Usuário S3 do Typebot | `typebot` | Chave restrita ao bucket |
+| Senha S3 do Typebot | gerada automaticamente | **Anote**; vira o `S3_SECRET_KEY` |
+| Limite de memória | `1GiB` | Ideal para VPS de 4 GB |
 
-5. Clique **Deploy**. São criados dois apps:
-   - **`minio`** → API S3 (porta 9000), com volume persistente `/data`;
-   - **`minio-console`** → proxy nginx (~3 MB de RAM) para o console.
+5. Clique em **Deploy** e aguarde 1–3 minutos. São criados:
+
+| App | Função | Endereço |
+|---|---|---|
+| `minio-open` | API S3 (porta 9000) + volume `/data` | `https://minio-open.seudominio` |
+| `minio-open-console` | Proxy nginx (~3 MB RAM) para o console | `https://minio-open-console.seudominio` |
+
+As senhas continuam disponíveis depois em **App Configs → Environment
+Variables** do app `minio-open`.
 
 ## Passo 3 — HTTPS
 
-Nos **dois** apps: **HTTP Settings → Enable HTTPS → Force HTTPS**.
-No `minio-console`, confirme que **Websocket Support** está marcado
-(o template já pede isso; algumas telas — logs, trace — usam websocket).
+Nos **dois** apps: **Configurações HTTP → Enable HTTPS → Force HTTPS → Salvar**.
 
-Usando domínio próprio (ex.: `s3.empresa.com` e `minio.empresa.com`)?
-Conecte-o em **HTTP Settings** e atualize, no app `minio`, as variáveis
-`MINIO_SERVER_URL=https://s3.empresa.com` e
-`MINIO_BROWSER_REDIRECT_URL=https://minio.empresa.com`.
+No `minio-open-console`, confirme que **Websocket Support** está marcado.
+As telas de logs e trace usam websocket.
 
-## Passo 4 — Conferir o guia nos logs
+### Domínio próprio (opcional)
 
-Abra o app `minio` → **App Logs**. Ao subir, o `minio-bootstrap` imprime:
+Para usar, por exemplo, `s3.empresa.com` e `minio.empresa.com`:
+
+1. Conecte cada domínio no respectivo app (**Configurações HTTP**).
+2. No app `minio-open`, atualize as variáveis:
+   - `MINIO_SERVER_URL=https://s3.empresa.com`
+   - `MINIO_BROWSER_REDIRECT_URL=https://minio.empresa.com`
+3. No Typebot, troque `S3_ENDPOINT` para `s3.empresa.com`.
+
+## Passo 4 — Conferir logs e console
+
+### Logs
+
+App `minio-open` → **Logs**. Na subida, o `minio-bootstrap` mostra:
 
 ```
 [bootstrap] bucket "typebot" created
@@ -93,63 +102,155 @@ Abra o app `minio` → **App Logs**. Ao subir, o `minio-bootstrap` imprime:
 ========================================================================
  MinIO pronto!  /  MinIO is ready!
 ========================================================================
- Console (admin completo) : https://minio-console.seudominio.com
- API S3                   : https://minio.seudominio.com
+ Console (admin completo) : https://minio-open-console.seudominio
+ API S3                   : https://minio-open.seudominio
  ...
- Cole no Typebot (builder E viewer) -> App Configs > Environment Variables:
-
    S3_ACCESS_KEY=typebot
    S3_SECRET_KEY=<o valor de MINIO_INIT_APP_PASSWORD deste app>
    S3_BUCKET=typebot
-   S3_ENDPOINT=minio.seudominio.com
+   S3_ENDPOINT=minio-open.seudominio
    S3_SSL=true
    S3_REGION=us-east-1
 ```
 
-Ele é **idempotente**: roda a cada reinício, mas nunca apaga nem sobrescreve
-nada que já exista (senhas, políticas de bucket editadas por você etc.).
+A cada reinício ele roda de novo, mas nunca apaga nem sobrescreve nada que já
+exista. Nos reinícios seguintes as mensagens viram `already exists`.
+
+### Console
+
+Entre em `https://minio-open-console.seudominio` com o usuário e a senha admin.
+Não é preciso configurar nada; se quiser, confira:
+
+| Onde | O que deve aparecer |
+|---|---|
+| **Object Browser** | Bucket `typebot` (0 objetos até o primeiro upload) |
+| **Identity → Users** | Usuário `typebot` com a política `app-typebot-rw` |
+| **Policies** | 6 políticas: `app-typebot-rw`, `consoleAdmin`, `diagnostics`, `readonly`, `readwrite`, `writeonly` |
+| **Buckets → typebot → Anonymous** | Prefixo `public/` com acesso `readonly` |
+
+Política `app-typebot-rw` esperada (acesso somente ao bucket `typebot`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetBucketLocation", "s3:ListBucket", "s3:ListBucketMultipartUploads"],
+      "Resource": ["arn:aws:s3:::typebot"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+                 "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+      "Resource": ["arn:aws:s3:::typebot/*"]
+    }
+  ]
+}
+```
+
+> ⚠️ **Não apague** a política `app-typebot-rw`: sem ela os uploads do Typebot
+> dão 403. Se acontecer, reinicie o app `minio-open` e o bootstrap a recria.
+>
+> ⚠️ **Não crie regras de Lifecycle que expirem `public/`**: é lá que ficam as
+> imagens e os arquivos dos seus bots.
+>
+> O menu **Subnet** (License, Health, Performance, Profile, Inspect, Call Home)
+> é do serviço comercial da MinIO e pode ser ignorado.
 
 ## Passo 5 — Configurar o Typebot
 
-No CapRover, nos apps do **builder** e do **viewer** do Typebot, adicione as
-variáveis acima (modelo em [`deploy/typebot.env.example`](typebot.env.example))
-e clique **Save & Update**.
+No CapRover, em **typebot-builder** e **typebot-viewer** → **Configurações do
+App → Variáveis de Ambiente**, adicione as **mesmas** variáveis nos dois:
 
-| Variável Typebot | Valor | Observação |
+| Variável | Valor | Observação |
 |---|---|---|
-| `S3_ACCESS_KEY` | usuário do Typebot | não use o admin |
-| `S3_SECRET_KEY` | senha do Typebot | |
+| `S3_ACCESS_KEY` | `typebot` | Nunca use o admin |
+| `S3_SECRET_KEY` | senha S3 do Typebot | Igual ao `MINIO_INIT_APP_PASSWORD` |
 | `S3_BUCKET` | `typebot` | |
-| `S3_ENDPOINT` | `minio.seudominio.com` | só o host: sem `https://`, sem `/` |
-| `S3_SSL` | `true` | |
+| `S3_ENDPOINT` | `minio-open.seudominio` | Só o host: sem `https://` e sem `/` |
+| `S3_SSL` | `true` | Exige HTTPS ativo no app `minio-open` |
 | `S3_REGION` | `us-east-1` | |
-| `S3_PORT` | (vazio) | só se usar porta diferente de 443 |
+| `S3_PORT` | (não defina) | Só se usar porta diferente de 443 |
 | `S3_PUBLIC_CUSTOM_DOMAIN` | (opcional) | CDN/domínio na frente dos arquivos públicos |
 
-Teste: num fluxo do Typebot, envie uma imagem num bloco de upload; ela deve
-aparecer no console em **Object Browser → typebot → public/…**.
+Modelo pronto: [`typebot.env.example`](typebot.env.example). Nomes conferidos
+no código do Typebot (`packages/env/src/index.ts`).
+
+**Dicas de revisão:**
+
+- `STORAGE_TYPE` e `UPLOAD_FS_FOLDER_NAME` **não existem** no Typebot. Se
+  estiverem lá, podem ser removidas: o Typebot usa S3 só por ter as `S3_*`.
+- Mantenha builder e viewer com o mesmo conjunto de variáveis, inclusive
+  `DISABLE_SIGNUP`.
+
+Clique em **Salvar & Reiniciar** nos dois apps.
+
+## Passo 6 — Testar
+
+1. No builder, adicione um bloco **Imagem → Upload** e envie uma imagem.
+   Ela deve aparecer no editor.
+2. Publique um bot com o bloco **Arquivo** e envie um arquivo pelo viewer.
+3. No console, abra **Object Browser → typebot → public/**: os arquivos
+   aparecem lá.
+4. Abra a URL de um arquivo numa aba anônima: deve carregar sem login.
+
+---
+
+## Migrar de um MinIO antigo (opcional)
+
+Se você já tinha outro app MinIO com arquivos do Typebot, entre no container
+do `minio-open` (veja [Comandos úteis](#comandos-úteis-mc-já-vem-na-imagem)) e:
+
+```bash
+mc alias set antigo https://S3-DO-MINIO-ANTIGO USUARIO_ANTIGO SENHA_ANTIGA
+```
+
+```bash
+mc alias set novo http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+```
+
+```bash
+mc mirror --preserve antigo/typebot novo/typebot
+```
+
+> **Importante:** o Typebot grava nos bots a **URL completa** dos arquivos
+> enviados. Bots antigos continuam apontando para o domínio do MinIO antigo.
+> Para não quebrá-los ao desligar o app antigo, depois do `mc mirror`
+> remova o domínio antigo do app velho e adicione-o como **domínio extra** no
+> app `minio-open` (Configurações HTTP). Assim as URLs antigas passam a ser
+> servidas pelo MinIO novo.
+
+Só exclua o app antigo depois de testar os bots existentes.
 
 ---
 
 ## Alternativa B — compilar na própria VPS
 
-O `captain-definition` na raiz aponta para o `Dockerfile.open`, então dá
-para criar um app comum no CapRover e usar **Deploy → Method 3 (GitHub)**
-com este repositório/branch. Recomendações:
+O `captain-definition` na raiz aponta para o `Dockerfile.open`, então você pode
+criar um app comum no CapRover e usar **Implantação → GitHub** com este
+repositório e o branch `master`. Recomendações:
 
-- crie **swap de 2–4 GB** na VPS antes (`fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`);
+- crie **swap de 2–4 GB** na VPS antes;
 - adicione a variável `WITH_MC=false` para pular o `mc` e encurtar o build;
 - `BUILD_JOBS=1` deixa o build mais lento, porém mais leve.
 
-Nesse caso crie o app do console à mão (ou use o template e só troque a
-imagem do app principal depois).
+O app do console precisa ser criado à parte; o mais simples é usar o template e
+depois trocar a origem do app principal.
 
 ## Docker Compose (sem CapRover)
 
 ```bash
-cp deploy/.env.example deploy/.env      # edite as senhas
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+cp deploy/.env.example deploy/.env
 ```
+
+Edite as senhas em `deploy/.env` e suba:
+
+```bash
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+```
+
+Acrescente `--build` para compilar localmente em vez de baixar a imagem.
 
 ---
 
@@ -160,60 +261,64 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | — | Credenciais admin (obrigatórias) |
 | `MINIO_SERVER_URL` | — | URL pública da API S3 (links e presigned URLs) |
 | `MINIO_BROWSER_REDIRECT_URL` | — | URL pública do console |
-| `MINIO_CONSOLE_LOCAL_API` | `on` | Console fala com a API via 127.0.0.1 (login não depende de DNS/SSL) — **novo neste fork** |
+| `MINIO_CONSOLE_LOCAL_API` | `on` | Console fala com a API via 127.0.0.1, então o login não depende de DNS/SSL (novo neste fork) |
 | `MINIO_MEMLIMIT` | `1GiB` | Teto de memória do Go; também ajusta o nº máximo de requisições simultâneas |
-| `MINIO_SCANNER_SPEED` | `slow` | Scanner de fundo mais leve (`fastest`…`slowest`) |
-| `MINIO_UPDATE` | `off` | Desliga a checagem de update em dl.min.io |
+| `MINIO_SCANNER_SPEED` | `slow` | Scanner de fundo (`fastest`, `fast`, `default`, `slow`, `slowest`) |
+| `MINIO_UPDATE` | `off` | Desliga a checagem de atualização em dl.min.io |
 | `MINIO_BROWSER_SESSION_DURATION` | `12h` | Duração da sessão no console |
 | `MINIO_VOLUMES` | `/data` | Diretório(s) de dados |
 | `MINIO_OPTS` | `--console-address :9001` | Argumentos extras do `minio server` |
 | `MINIO_INIT_ENABLE` | `on` | `off` desativa o bootstrap |
-| `MINIO_INIT_BUCKETS` | `typebot` | Buckets a criar (separe por vírgula) |
+| `MINIO_INIT_BUCKETS` | `typebot` | Buckets a criar (separados por vírgula) |
 | `MINIO_INIT_PUBLIC_PATHS` | `typebot/public` | `bucket/prefixo` com leitura anônima (somente download) |
 | `MINIO_INIT_APP_USER` / `MINIO_INIT_APP_PASSWORD` | — | Usuário de aplicação a criar |
 | `MINIO_INIT_APP_BUCKETS` | = `MINIO_INIT_BUCKETS` | Buckets que esse usuário acessa |
 
+Variáveis de build (o CapRover também as repassa como build-args):
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `WITH_MC` | `true` | Inclui o `mc` na imagem |
+| `BUILD_JOBS` | `2` | Paralelismo do compilador |
+
 Exemplo com vários apps: `MINIO_INIT_BUCKETS=typebot,n8n,backups` e
 `MINIO_INIT_PUBLIC_PATHS=typebot/public`.
 
-## Ajuste fino para a VPS (3 vCPU / 4 GB / 65 GB)
-
-Orçamento de RAM sugerido:
+## Ajuste fino para VPS de 4 GB
 
 | Serviço | RAM típica |
 |---|---|
 | CapRover + nginx | ~250 MB |
-| MinIO Open (ocioso → com uploads) | ~300 MB → até 1 GB |
+| MinIO Open (ocioso → com uploads) | ~160 MB → até 1 GB |
 | Typebot builder + viewer | ~600–900 MB |
 | PostgreSQL | ~150–300 MB |
 | Folga do sistema | ~1 GB |
 
-Para impor um teto rígido ao container (além do `MINIO_MEMLIMIT`), no app
-`minio` → **App Configs → Service Update Override**:
+Para impor um teto rígido ao container, além do `MINIO_MEMLIMIT`, use no app
+`minio-open` → **Configurações do App → Service Update Override**:
 
 ```json
 { "TaskTemplate": { "Resources": { "Limits": { "MemoryBytes": 1610612736 } } } }
 ```
 
-(= 1,5 GB). Mantenha o limite ~50% acima de `MINIO_MEMLIMIT`.
+Isso equivale a 1,5 GB. Mantenha esse limite ~50% acima do `MINIO_MEMLIMIT`.
 
-Dicas de disco: crie uma regra de **Lifecycle** (console → Buckets →
-typebot → Lifecycle) para expirar arquivos temporários, e acompanhe o uso
-em **Monitoring → Metrics**.
+**Backup:** todos os dados ficam no volume `minio-open-data`. Inclua-o na rotina
+de backup da VPS.
 
 ## Comandos úteis (`mc` já vem na imagem)
 
-No servidor (SSH), ache o container do app `minio` e entre nele:
+No servidor (SSH), ache o container e entre nele:
 
 ```bash
-docker ps --format '{{.Names}}' | grep 'srv-captain--minio\.'
+docker ps --format '{{.Names}}' | grep 'srv-captain--minio-open\.'
 ```
 
 ```bash
 docker exec -it <nome-que-apareceu-acima> sh
 ```
 
-Dentro dele:
+Dentro do container:
 
 ```bash
 mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
@@ -235,29 +340,22 @@ mc anonymous get local/typebot
 
 | Sintoma | Causa provável | Correção |
 |---|---|---|
-| Template falha no deploy: “pull access denied” | Pacote do GHCR privado ou ainda não publicado | Passo 1 (Actions verde + pacote público) |
-| Console abre mas login dá erro | `MINIO_CONSOLE_LOCAL_API` desligado e domínio S3 sem HTTPS | Ligue `MINIO_CONSOLE_LOCAL_API=on` ou ative o HTTPS do app S3 |
+| Template: “pull access denied” | Imagem não publicada ou pacote privado | Passo 1 (Actions verde; registry no CapRover se privado) |
+| Colei a URL do template e deu erro | O CapRover só aceita o conteúdo | Abra o link raw, copie tudo e cole |
+| Nome do app já existe | Já há um app com esse nome | Use outro nome (ex.: `minio-open`) |
+| Console abre mas o login falha | `MINIO_CONSOLE_LOCAL_API` desligado e app S3 sem HTTPS | Ligue `MINIO_CONSOLE_LOCAL_API=on` ou ative o HTTPS |
 | Console redireciona para endereço errado | `MINIO_BROWSER_REDIRECT_URL` incorreto | Ajuste para a URL pública do app `-console` |
-| Upload no Typebot falha (403/SignatureDoesNotMatch) | `S3_ENDPOINT` com `https://` ou `/`, ou chave errada | Use só o host; confira `S3_ACCESS_KEY`/`S3_SECRET_KEY` |
-| Imagens do Typebot não aparecem (403) | Pasta `public/` sem leitura anônima | Console → Buckets → typebot → Anonymous → prefixo `public/` = readonly |
-| Upload grande falha com 413 | Limite de corpo do nginx do CapRover | Aumente `client_max_body_size` na config nginx do app `minio` |
-| Telas de Logs/Trace não carregam | Websocket desligado no app do console | HTTP Settings → Websocket Support |
+| Upload no Typebot: 403 / `SignatureDoesNotMatch` | `S3_ENDPOINT` com `https://` ou `/`, ou senha errada | Só o host; confira `S3_ACCESS_KEY` / `S3_SECRET_KEY` |
+| Upload no Typebot: 403 / `AccessDenied` | Política `app-typebot-rw` removida | Reinicie o app `minio-open` |
+| Imagens não aparecem para visitantes (403) | `public/` sem leitura anônima | Buckets → typebot → Anonymous → `public/` = readonly |
+| Upload grande falha com 413 | Limite de corpo do nginx do CapRover | Aumente `client_max_body_size` na config nginx do app `minio-open` |
+| Telas de Logs/Trace não carregam | Websocket desligado no app do console | Configurações HTTP → Websocket Support |
 
-## Arquivos deste fork
+## Atualizar
 
-| Arquivo | Função |
-|---|---|
-| `third_party/console/` | Console v1.7.3 completo (+ patch de compatibilidade) |
-| `cmd/common-main.go` | Opção `MINIO_CONSOLE_LOCAL_API` |
-| `deploy/bootstrap/` | `minio-bootstrap`: buckets, acesso público, usuário do app, guia nos logs |
-| `Dockerfile.open` | Imagem Alpine compilada do código-fonte (minio + bootstrap + mc) |
-| `dockerscripts/open-entrypoint.sh` | Entrypoint: sobe o servidor e o bootstrap |
-| `captain-definition` | Deploy direto do GitHub no CapRover (compila na VPS) |
-| `deploy/caprover/minio-open-one-click.yml` | Template One-Click (S3 + Console) |
-| `deploy/docker-compose.yml`, `deploy/.env.example` | Uso fora do CapRover |
-| `deploy/typebot.env.example` | Variáveis prontas para o Typebot |
-| `.github/workflows/open-image.yml` | Publica a imagem no GHCR |
-
-Licença: GNU AGPLv3 (igual ao MinIO). Ao oferecer este serviço modificado a
-terceiros, o código-fonte das modificações deve continuar disponível — este
-repositório público já cumpre isso.
+- **Nova imagem:** a cada push no `master` o GitHub publica uma nova `latest`.
+  No CapRover, app `minio-open` → **Implantação** → **Deploy via ImageName** →
+  `ghcr.io/chr1sred/minio-open:latest` → **Deploy**. Os dados do volume `/data`
+  são preservados.
+- **Trazer correções do MinIO original:** faça merge do `master` de
+  `minio/minio` neste fork; o console em `third_party/console` não é afetado.

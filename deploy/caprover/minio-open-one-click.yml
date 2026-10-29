@@ -91,4 +91,4 @@ caproverOneClickApp:
     displayName: MinIO Open (console completo + Typebot)
     isOfficial: false
     description: MinIO com o console administrativo completo restaurado, leve e configurado automaticamente para o Typebot.
-    documentation: https://github.com/chr1sred/minio-open/blob/claude/upbeat-cray-ottuct/deploy/README.md
+    documentation: https://github.com/chr1sred/minio-open/blob/master/deploy/README.md

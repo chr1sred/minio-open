@@ -7,6 +7,7 @@ name: MinIO Open image
 on:
   push:
     branches:
+      - master
       - open
       - 'claude/**'
     tags:
