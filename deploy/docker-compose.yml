@@ -1,0 +1,35 @@
+# MinIO Open fora do CapRover (Docker Compose puro / teste local).
+#
+#   cp deploy/.env.example deploy/.env   # edite as senhas
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+#
+# API S3: http://localhost:9000   Console: http://localhost:9001
+services:
+  minio:
+    build:
+      context: ..
+      dockerfile: Dockerfile.open
+    image: ${MINIO_IMAGE:-ghcr.io/chr1sred/minio-open:latest}
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-}
+      MINIO_MEMLIMIT: ${MINIO_MEMLIMIT:-1GiB}
+      MINIO_INIT_BUCKETS: ${MINIO_INIT_BUCKETS:-typebot}
+      MINIO_INIT_PUBLIC_PATHS: ${MINIO_INIT_PUBLIC_PATHS:-typebot/public}
+      MINIO_INIT_APP_USER: ${MINIO_INIT_APP_USER:-typebot}
+      MINIO_INIT_APP_PASSWORD: ${MINIO_INIT_APP_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+volumes:
+  minio-data:

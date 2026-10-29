@@ -5,6 +5,11 @@
 > - **[AIStor Free](https://min.io/download)** — Full-featured, standalone edition for community use (free license)
 > - **[AIStor Enterprise](https://min.io/pricing)** — Distributed edition with commercial support
 
+> [!TIP]
+> **MinIO Open (este fork):** console administrativo completo restaurado (usuários, grupos, políticas,
+> lifecycle, tiers, replicação, eventos, configurações), imagem Docker própria, deploy One-Click no
+> CapRover e configuração automática para o Typebot. Guia: **[deploy/README.md](deploy/README.md)**.
+
 ---
 
 # MinIO Quickstart Guide

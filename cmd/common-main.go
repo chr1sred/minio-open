@@ -120,7 +120,10 @@ const consolePrefix = "CONSOLE_"
 func minioConfigToConsoleFeatures() {
 	os.Setenv("CONSOLE_PBKDF_SALT", globalDeploymentID())
 	os.Setenv("CONSOLE_PBKDF_PASSPHRASE", globalDeploymentID())
-	if globalMinioEndpoint != "" {
+	// MINIO_CONSOLE_LOCAL_API=on makes Console talk to the local S3 API even when
+	// MINIO_SERVER_URL is set, so login keeps working behind reverse proxies
+	// (CapRover, Traefik...) that can't hairpin to the public domain.
+	if globalMinioEndpoint != "" && env.Get("MINIO_CONSOLE_LOCAL_API", config.EnableOff) != config.EnableOn {
 		os.Setenv("CONSOLE_MINIO_SERVER", globalMinioEndpoint)
 	} else {
 		// Explicitly set 127.0.0.1 so Console will automatically bypass TLS verification to the local S3 API.
