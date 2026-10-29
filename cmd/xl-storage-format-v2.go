@@ -1101,7 +1101,7 @@ func (x *xlMetaV2) loadLegacy(buf []byte) error {
 				return msgp.WrapError(err, "Versions")
 			}
 			if cap(x.versions) >= int(zb0002) {
-				x.versions = (x.versions)[:zb0002]
+				x.versions = x.versions[:zb0002]
 			} else {
 				x.versions = make([]xlMetaV2ShallowVersion, zb0002, zb0002+1)
 			}

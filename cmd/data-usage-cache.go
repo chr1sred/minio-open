@@ -326,7 +326,7 @@ func (h dataUsageHash) modAlt(cycle uint32, cycles uint32) bool {
 	if cycles <= 1 {
 		return cycles == 1
 	}
-	return uint32(xxhash.Sum64String(string(h))>>32)%(cycles) == cycle%cycles
+	return uint32(xxhash.Sum64String(string(h))>>32)%cycles == cycle%cycles
 }
 
 // addChild will add a child based on its hash.

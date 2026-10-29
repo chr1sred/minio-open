@@ -3734,7 +3734,7 @@ func (c *SiteReplicationSys) SiteReplicationMetaInfo(ctx context.Context, objAPI
 				bms.ExpiryLCConfig = &expLclCfgStr
 				// if all non expiry rules only, ExpiryUpdatedAt would be nil
 				if meta.lifecycleConfig.ExpiryUpdatedAt != nil {
-					bms.ExpiryLCConfigUpdatedAt = *(meta.lifecycleConfig.ExpiryUpdatedAt)
+					bms.ExpiryLCConfigUpdatedAt = *meta.lifecycleConfig.ExpiryUpdatedAt
 				}
 			}
 

@@ -43,7 +43,7 @@ func DisableDirectIO(f *os.File) error {
 	if err != nil {
 		return err
 	}
-	flag &= ^(syscall.O_DIRECT)
+	flag &= ^syscall.O_DIRECT
 	_, err = unix.FcntlInt(fd, unix.F_SETFL, flag)
 	return err
 }
