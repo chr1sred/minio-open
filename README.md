@@ -1,170 +1,184 @@
-> [!NOTE]
-> **THIS REPOSITORY IS NO LONGER MAINTAINED.**
->
-> **Alternatives:**
-> - **[AIStor Free](https://min.io/download)** — Full-featured, standalone edition for community use (free license)
-> - **[AIStor Enterprise](https://min.io/pricing)** — Distributed edition with commercial support
+# MinIO Open
+
+**MinIO com o console administrativo completo de volta**, empacotado para subir
+em poucos cliques numa VPS pequena com **CapRover**, e já integrado ao **Typebot**.
+
+Fork de [minio/minio](https://github.com/minio/minio), que entrou em modo de
+manutenção em 2025: a comunidade perdeu o console administrativo e deixou de
+receber imagens Docker e binários oficiais. Este fork devolve as duas coisas.
+
+[![license](https://img.shields.io/badge/license-AGPL%20V3-blue)](LICENSE)
+[![image](https://img.shields.io/badge/imagem-ghcr.io%2Fchr1sred%2Fminio--open-2ea44f)](https://github.com/chr1sred/minio-open/pkgs/container/minio-open)
 
 ---
 
-# MinIO Quickstart Guide
+## Por que este fork
 
-[![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/minio.svg?maxAge=604800)](https://hub.docker.com/r/minio/minio/) [![license](https://img.shields.io/badge/license-AGPL%20V3-blue)](https://github.com/minio/minio/blob/master/LICENSE)
+| Recurso | MinIO oficial (2025) | MinIO Open |
+|---|---|---|
+| Console: usuários, grupos, políticas, access keys | ❌ removido (sobrou só o Object Browser) | ✅ |
+| Console: OpenID / LDAP | ❌ removido | ✅ |
+| Console: Lifecycle (expirar/mover objetos) | ❌ removido desde nov/2024 | ✅ |
+| Console: Tiering, Site Replication | ❌ removido desde nov/2024 | ✅ |
+| Console: eventos, notificações, cotas, replicação de bucket | ❌ removido | ✅ |
+| Console: configurações do servidor, monitoramento, logs, trace | ❌ removido | ✅ |
+| Imagem Docker pronta | ❌ não é mais publicada | ✅ `ghcr.io/chr1sred/minio-open` |
+| Correções do servidor de 2025 | ✅ | ✅ (servidor do `master` mais recente) |
+| Configuração automática para o Typebot | — | ✅ bucket, pasta pública e usuário dedicado |
+| Login do console atrás de proxy (CapRover, Traefik) | ⚠️ falha se o domínio público não responde de dentro da VPS | ✅ `MINIO_CONSOLE_LOCAL_API=on` |
+| Padrões para VPS de 2–4 GB | — | ✅ ~160 MB de RAM ocioso, teto configurável |
 
-[![MinIO](https://raw.githubusercontent.com/minio/minio/master/.github/logo.svg?sanitize=true)](https://min.io)
+**Como foi feito:** o servidor é o `master` mais recente do MinIO. Só o console
+(`github.com/minio/console`) foi fixado na **v1.7.3**, a última versão com a
+interface administrativa completa. Ele fica em
+[`third_party/console`](third_party/console), com um patch mínimo de
+compatibilidade com o `minio-go` atual.
 
-MinIO is a high-performance, S3-compatible object storage solution released under the GNU AGPL v3.0 license.
-Designed for speed and scalability, it powers AI/ML, analytics, and data-intensive workloads with industry-leading performance.
+---
 
-- S3 API Compatible – Seamless integration with existing S3 tools
-- Built for AI & Analytics – Optimized for large-scale data pipelines
-- High Performance – Ideal for demanding storage workloads.
+## Começo rápido
 
-This README provides instructions for building MinIO from source and deploying onto baremetal hardware.
-Use the [MinIO Documentation](https://github.com/minio/docs) project to build and host a local copy of the documentation.
+### CapRover (recomendado)
 
-## MinIO is Open Source Software
+1. **CapRover → Apps → One-Click Apps/Databases → `>> TEMPLATE <<`**.
+2. Cole o conteúdo de [`deploy/caprover/minio-open-one-click.yml`](deploy/caprover/minio-open-one-click.yml)
+   (versão em texto puro: [raw](https://raw.githubusercontent.com/chr1sred/minio-open/master/deploy/caprover/minio-open-one-click.yml)).
+3. Nomeie o app (ex.: `minio-open`), anote as senhas geradas e clique em **Deploy**.
+4. Ative **HTTPS** nos dois apps criados (`minio-open` e `minio-open-console`).
+5. Copie as variáveis `S3_*` dos **App Logs** do `minio-open` para o builder e o viewer do Typebot.
 
-We designed MinIO as Open Source software for the Open Source software community. We encourage the community to remix, redesign, and reshare MinIO under the terms of the AGPLv3 license.
+Passo a passo completo, com prints do que esperar, variáveis e solução de
+problemas: **[deploy/README.md](deploy/README.md)**.
 
-All usage of MinIO in your application stack requires validation against AGPLv3 obligations, which include but are not limited to the release of modified code to the community from which you have benefited. Any commercial/proprietary usage of the AGPLv3 software, including repackaging or reselling services/features, is done at your own risk.
+### Docker
 
-The AGPLv3 provides no obligation by any party to support, maintain, or warranty the original or any modified work.
-All support is provided on a best-effort basis through Github and our [Slack](https://slack.min.io) channel, and any member of the community is welcome to contribute and assist others in their usage of the software.
-
-MinIO [AIStor](https://www.min.io/product/aistor) includes enterprise-grade support and licensing for workloads which require commercial or proprietary usage and production-level SLA/SLO-backed support. For more information, [reach out for a quote](https://min.io/pricing).
-
-## Source-Only Distribution
-
-**Important:** The MinIO community edition is now distributed as source code only. We will no longer provide pre-compiled binary releases for the community version.
-
-### Installing Latest MinIO Community Edition
-
-To use MinIO community edition, you have two options:
-
-1. **Install from source** using `go install github.com/minio/minio@latest` (recommended)
-2. **Build a Docker image** from the provided Dockerfile
-
-See the sections below for detailed instructions on each method.
-
-### Legacy Binary Releases
-
-Historical pre-compiled binary releases remain available for reference but are no longer maintained:
-
-- GitHub Releases: https://github.com/minio/minio/releases
-- Direct downloads: https://dl.min.io/server/minio/release/
-
-**These legacy binaries will not receive updates.** We strongly recommend using source builds for access to the latest features, bug fixes, and security updates.
-
-## Install from Source
-
-Use the following commands to compile and run a standalone MinIO server from source.
-If you do not have a working Golang environment, please follow [How to install Golang](https://golang.org/doc/install). Minimum version required is [go1.24](https://golang.org/dl/#stable)
-
-```sh
-go install github.com/minio/minio@latest
+```bash
+docker run -d --name minio -p 9000:9000 -p 9001:9001 -v minio-data:/data -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=troque-esta-senha ghcr.io/chr1sred/minio-open:latest
 ```
 
-You can alternatively run `go build` and use the `GOOS` and `GOARCH` environment variables to control the OS and architecture target.
-For example:
+API S3 em `http://localhost:9000` e console em `http://localhost:9001`.
 
-```
-env GOOS=linux GOARCH=arm64 go build
-```
+### Docker Compose
 
-Start MinIO by running `minio server PATH` where `PATH` is any empty folder on your local filesystem.
-
-The MinIO deployment starts using default root credentials `minioadmin:minioadmin`.
-You can test the deployment using the MinIO Console, an embedded web-based object browser built into MinIO Server.
-Point a web browser running on the host machine to <http://127.0.0.1:9000> and log in with the root credentials.
-You can use the Browser to create buckets, upload objects, and browse the contents of the MinIO server.
-
-You can also connect using any S3-compatible tool, such as the MinIO Client `mc` commandline tool:
-
-```sh
-mc alias set local http://localhost:9000 minioadmin minioadmin
-mc admin info local
+```bash
+cp deploy/.env.example deploy/.env
 ```
 
-See [Test using MinIO Client `mc`](#test-using-minio-client-mc) for more information on using the `mc` commandline tool.
-For application developers, see <https://docs.min.io/enterprise/aistor-object-store/developers/sdk/> to view MinIO SDKs for supported languages.
-
-> [!NOTE]
-> Production environments using compiled-from-source MinIO binaries do so at their own risk.
-> The AGPLv3 license provides no warranties nor liabilities for any such usage.
-
-## Build Docker Image
-
-You can use the `docker build .` command to build a Docker image on your local host machine.
-You must first [build MinIO](#install-from-source) and ensure the `minio` binary exists in the project root.
-
-The following command builds the Docker image using the default `Dockerfile` in the root project directory with the repository and image tag `myminio:minio`
-
-```sh
-docker build -t myminio:minio .
+```bash
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 ```
 
-Use `docker image ls` to confirm the image exists in your local repository.
-You can run the server using standard Docker invocation:
+---
 
-```sh
-docker run -p 9000:9000 -p 9001:9001 myminio:minio server /tmp/minio --console-address :9001
+## O que vem na imagem
+
+| Componente | Descrição |
+|---|---|
+| `minio` | Servidor S3 + console admin completo (porta 9000 API, 9001 console) |
+| `minio-bootstrap` | Roda a cada início, sem nunca sobrescrever nada: cria buckets, libera leitura pública de prefixos, cria um usuário de aplicação com política restrita e imprime nos logs o guia de configuração do Typebot |
+| `mc` | MinIO Client, para administração pela linha de comando |
+
+Base Alpine, ~160 MB, healthcheck embutido em `/minio/health/live`.
+
+### Variáveis principais
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | — | Credenciais admin (obrigatórias) |
+| `MINIO_SERVER_URL` | — | URL pública da API S3 |
+| `MINIO_BROWSER_REDIRECT_URL` | — | URL pública do console |
+| `MINIO_CONSOLE_LOCAL_API` | `on` | Console fala com a API via 127.0.0.1 (novo neste fork) |
+| `MINIO_MEMLIMIT` | `1GiB` | Teto de memória; também ajusta a concorrência máxima |
+| `MINIO_SCANNER_SPEED` | `slow` | Scanner de fundo mais leve |
+| `MINIO_INIT_BUCKETS` | `typebot` | Buckets criados automaticamente |
+| `MINIO_INIT_PUBLIC_PATHS` | `typebot/public` | Prefixos com leitura anônima (somente download) |
+| `MINIO_INIT_APP_USER` / `MINIO_INIT_APP_PASSWORD` | — | Usuário de aplicação a criar |
+
+Lista completa em [deploy/README.md](deploy/README.md#variáveis-de-ambiente).
+
+---
+
+## Integração com o Typebot
+
+O bootstrap deixa o MinIO no formato que o Typebot espera: bucket `typebot`,
+prefixo `public/` com leitura anônima e um usuário com acesso só a esse bucket.
+No builder **e** no viewer do Typebot:
+
+| Variável | Valor |
+|---|---|
+| `S3_ACCESS_KEY` | usuário do Typebot (ex.: `typebot`) |
+| `S3_SECRET_KEY` | senha do Typebot |
+| `S3_BUCKET` | `typebot` |
+| `S3_ENDPOINT` | `minio-open.seudominio.com` (só o host, sem `https://`) |
+| `S3_SSL` | `true` |
+| `S3_REGION` | `us-east-1` |
+
+Modelo pronto em [`deploy/typebot.env.example`](deploy/typebot.env.example).
+Validado em produção com a versão atual do Typebot: upload pelo builder e
+exibição pública das imagens.
+
+---
+
+## Compilar a partir do código-fonte
+
+Requer Go 1.24+.
+
+```bash
+CGO_ENABLED=0 go build -trimpath -o minio .
 ```
 
-Complete documentation for building Docker containers, managing custom images, or loading images into orchestration platforms is out of scope for this documentation.
-You can modify the `Dockerfile` and `dockerscripts/docker-entrypoint.sh` as-needed to reflect your specific image requirements.
-
-See the [MinIO Container](https://docs.min.io/community/minio-object-store/operations/deployments/baremetal-deploy-minio-as-a-container.html#deploy-minio-container) documentation for more guidance on running MinIO within a Container image.
-
-## Install using Helm Charts
-
-There are two paths for installing MinIO onto Kubernetes infrastructure:
-
-- Use the [MinIO Operator](https://github.com/minio/operator)
-- Use the community-maintained [Helm charts](https://github.com/minio/minio/tree/master/helm/minio)
-
-See the [MinIO Documentation](https://docs.min.io/community/minio-object-store/operations/deployments/kubernetes.html) for guidance on deploying using the Operator.
-The Community Helm chart has instructions in the folder-level README.
-
-## Test MinIO Connectivity
-
-### Test using MinIO Console
-
-MinIO Server comes with an embedded web based object browser.
-Point your web browser to <http://127.0.0.1:9000> to ensure your server has started successfully.
-
-> [!NOTE]
-> MinIO runs console on random port by default, if you wish to choose a specific port use `--console-address` to pick a specific interface and port.
-
-### Test using MinIO Client `mc`
-
-`mc` provides a modern alternative to UNIX commands like ls, cat, cp, mirror, diff etc. It supports filesystems and Amazon S3 compatible cloud storage services.
-
-The following commands set a local alias, validate the server information, create a bucket, copy data to that bucket, and list the contents of the bucket.
-
-```sh
-mc alias set local http://localhost:9000 minioadmin minioadmin
-mc admin info
-mc mb data
-mc cp ~/Downloads/mydata data/
-mc ls data/
+```bash
+CGO_ENABLED=0 go build -trimpath -o minio-bootstrap ./deploy/bootstrap
 ```
 
-Follow the MinIO Client [Quickstart Guide](https://docs.min.io/community/minio-object-store/reference/minio-mc.html#quickstart) for further instructions.
+Imagem Docker:
 
-## Explore Further
+```bash
+docker build -f Dockerfile.open -t minio-open .
+```
 
-- [The MinIO documentation website](https://docs.min.io/community/minio-object-store/index.html)
-- [MinIO Erasure Code Overview](https://docs.min.io/community/minio-object-store/operations/concepts/erasure-coding.html)
-- [Use `mc` with MinIO Server](https://docs.min.io/community/minio-object-store/reference/minio-mc.html)
-- [Use `minio-go` SDK with MinIO Server](https://docs.min.io/enterprise/aistor-object-store/developers/sdk/go/)
+A cada push no `master`, o workflow [`open-image.yml`](.github/workflows/open-image.yml)
+publica `ghcr.io/chr1sred/minio-open:latest`.
 
-## Contribute to MinIO Project
+---
 
-Please follow MinIO [Contributor's Guide](https://github.com/minio/minio/blob/master/CONTRIBUTING.md) for guidance on making new contributions to the repository.
+## Estrutura do fork
 
-## License
+| Caminho | Função |
+|---|---|
+| `third_party/console/` | Console v1.7.3 completo (+ patch de compatibilidade) |
+| `cmd/common-main.go` | Opção `MINIO_CONSOLE_LOCAL_API` |
+| `deploy/bootstrap/` | Código do `minio-bootstrap` |
+| `deploy/caprover/` | Template One-Click do CapRover |
+| `deploy/docker-compose.yml`, `deploy/.env.example` | Uso fora do CapRover |
+| `deploy/typebot.env.example` | Variáveis prontas para o Typebot |
+| `deploy/README.md` | Guia completo de implantação |
+| `Dockerfile.open`, `dockerscripts/open-entrypoint.sh` | Imagem Docker |
+| `captain-definition` | Deploy direto do GitHub no CapRover (compila na VPS) |
+| `.github/workflows/open-image.yml` | Publicação da imagem no GHCR |
 
-- MinIO source is licensed under the [GNU AGPLv3](https://github.com/minio/minio/blob/master/LICENSE).
-- MinIO [documentation](https://github.com/minio/minio/tree/master/docs) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- [License Compliance](https://github.com/minio/minio/blob/master/COMPLIANCE.md)
+O restante do repositório é o MinIO original, sem alterações.
+
+---
+
+## Limitações conhecidas
+
+- O console é de **nov/2024 (v1.7.3)**. As versões 1.7.4–1.7.6 trouxeram
+  basicamente as remoções de recursos. Use sempre HTTPS e senhas fortes.
+- O menu **Subnet** do console (License, Health, Call Home…) pertence ao
+  serviço comercial da MinIO e não tem função aqui; pode ser ignorado.
+- Pensado para instalação em um único servidor/disco (`/data`). Para
+  clusters distribuídos, consulte a documentação original do MinIO.
+
+---
+
+## Licença e créditos
+
+- Código-fonte: [GNU AGPLv3](LICENSE), igual ao MinIO. Ao oferecer este
+  serviço modificado a terceiros, o código das modificações deve continuar
+  disponível; este repositório público já cumpre isso.
+- Documentação original do MinIO: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- [Conformidade de licença](COMPLIANCE.md) · [Créditos](CREDITS)
+
+MinIO é marca registrada da MinIO, Inc. Este é um fork comunitário e
+independente, sem afiliação com a MinIO, Inc.

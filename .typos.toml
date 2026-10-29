@@ -1,5 +1,5 @@
 [files]
-extend-exclude = [".git/", "docs/", "CREDITS", "go.mod", "go.sum"]
+extend-exclude = [".git/", "docs/", "CREDITS", "go.mod", "go.sum", "third_party/", "README.md", "deploy/", "Dockerfile.open", "dockerscripts/open-entrypoint.sh"]
 ignore-hidden = false
 
 [default]
