@@ -2,13 +2,14 @@
 x-minio-common: &minio-common
   build:
     context: ../../.
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.open
   command: server --console-address ":9001" http://minio{1...4}/data{1...8}
   expose:
     - "9000"
     - "9001"
   environment:
     MINIO_CI_CD: 1
+    MINIO_INIT_ENABLE: "off"
   healthcheck:
     test: ["CMD", "mc", "ready", "local"]
     interval: 5s
