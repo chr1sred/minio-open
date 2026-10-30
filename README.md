@@ -1,5 +1,7 @@
 # MinIO Open
 
+🇧🇷 Português · [🇺🇸 English](README.en-US.md)
+
 **MinIO com o console administrativo completo de volta**, empacotado para subir
 em poucos cliques numa VPS pequena com **CapRover**, e já integrado ao **Typebot**.
 
@@ -27,6 +29,8 @@ receber imagens Docker e binários oficiais. Este fork devolve as duas coisas.
 | Configuração automática para o Typebot | — | ✅ bucket, pasta pública e usuário dedicado |
 | Login do console atrás de proxy (CapRover, Traefik) | ⚠️ falha se o domínio público não responde de dentro da VPS | ✅ `MINIO_CONSOLE_LOCAL_API=on` |
 | Padrões para VPS de 2–4 GB | — | ✅ ~160 MB de RAM ocioso, teto configurável |
+| Helm chart e Docker Compose funcionando | ❌ apontam para imagens que não existem mais | ✅ usam a imagem deste fork |
+| Build e testes sem depender da MinIO Inc. | ❌ exigem `dl.min.io`, Docker Hub e máquinas próprias | ✅ tudo compila do código-fonte no GitHub Actions |
 
 **Como foi feito:** o servidor é o `master` mais recente do MinIO. Só o console
 (`github.com/minio/console`) foi fixado na **v1.7.3**, a última versão com a
@@ -68,6 +72,29 @@ cp deploy/.env.example deploy/.env
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 ```
 
+### Kubernetes (Helm)
+
+O chart em [`helm/minio`](helm/minio) já usa `ghcr.io/chr1sred/minio-open`:
+
+```bash
+helm install minio ./helm/minio --set mode=standalone,replicas=1,rootUser=admin,rootPassword=troque-esta-senha
+```
+
+---
+
+## Atualizar uma instalação existente
+
+A cada push no `master`, o GitHub publica uma nova `ghcr.io/chr1sred/minio-open:latest`.
+
+| Onde roda | Como atualizar |
+|---|---|
+| CapRover | App `minio-open` → **Implantação** → **Deploy via ImageName** → `ghcr.io/chr1sred/minio-open:latest` → **Deploy** |
+| Docker | `docker pull ghcr.io/chr1sred/minio-open:latest` e recrie o contêiner |
+| Docker Compose | `docker compose -f deploy/docker-compose.yml pull` e depois `up -d` |
+
+Os dados em `/data`, os usuários e as políticas são preservados. O bootstrap
+nunca sobrescreve o que já existe.
+
 ---
 
 ## O que vem na imagem
@@ -75,7 +102,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 | Componente | Descrição |
 |---|---|
 | `minio` | Servidor S3 + console admin completo (porta 9000 API, 9001 console) |
-| `minio-bootstrap` | Roda a cada início, sem nunca sobrescrever nada: cria buckets, libera leitura pública de prefixos, cria um usuário de aplicação com política restrita e imprime nos logs o guia de configuração do Typebot |
+| `minio-bootstrap` | Roda a cada início, sem nunca sobrescrever nada: cria buckets, libera leitura pública de prefixos, cria um usuário de aplicação com política restrita e imprime nos logs o guia de configuração do Typebot. Sem variáveis `MINIO_INIT_*`, não faz nada |
 | `mc` | MinIO Client, para administração pela linha de comando |
 
 Base Alpine, ~160 MB, healthcheck embutido em `/minio/health/live`.
@@ -93,6 +120,7 @@ Base Alpine, ~160 MB, healthcheck embutido em `/minio/health/live`.
 | `MINIO_INIT_BUCKETS` | — | Buckets criados automaticamente (o template do CapRover usa `typebot`) |
 | `MINIO_INIT_PUBLIC_PATHS` | — | Prefixos com leitura anônima, somente download (o template usa `typebot/public`) |
 | `MINIO_INIT_APP_USER` / `MINIO_INIT_APP_PASSWORD` | — | Usuário de aplicação a criar |
+| `MINIO_INIT_ENABLE` | `on` | `off` desliga o bootstrap |
 
 Lista completa em [deploy/README.md](deploy/README.md#variáveis-de-ambiente).
 
@@ -121,7 +149,7 @@ exibição pública das imagens.
 
 ## Compilar a partir do código-fonte
 
-Requer Go 1.24+.
+Requer Go 1.26+.
 
 ```bash
 CGO_ENABLED=0 go build -trimpath -o minio .
@@ -134,11 +162,25 @@ CGO_ENABLED=0 go build -trimpath -o minio-bootstrap ./deploy/bootstrap
 Imagem Docker:
 
 ```bash
-docker build -f Dockerfile -t minio-open .
+docker build -t minio-open .
 ```
 
 A cada push no `master`, o workflow [`open-image.yml`](.github/workflows/open-image.yml)
 publica `ghcr.io/chr1sred/minio-open:latest`.
+
+### Testes e CI
+
+Todos os testes do MinIO original rodam no GitHub Actions deste fork, sem
+depender de servidores da MinIO Inc.:
+
+| Suíte | O que verifica |
+|---|---|
+| Lint, unitários, build cruzado | Código Go (Go 1.26) |
+| IAM (LDAP, OpenID, etcd) | Login e políticas |
+| Healing, resiliência, replicação | Recuperação de discos e sites |
+| Upgrade | Atualização a partir de uma versão de 2019, compilada do código-fonte |
+| Mint | Compatibilidade S3 completa |
+| Dependency review, vulncheck | Vulnerabilidades em dependências |
 
 ---
 
@@ -154,10 +196,13 @@ publica `ghcr.io/chr1sred/minio-open:latest`.
 | `deploy/typebot.env.example` | Variáveis prontas para o Typebot |
 | `deploy/README.md` | Guia completo de implantação |
 | `Dockerfile`, `dockerscripts/open-entrypoint.sh` | Imagem Docker |
+| `helm/minio/` | Helm chart usando a imagem deste fork |
+| `buildscripts/build-release-image.sh` | Compila versões antigas do MinIO para os testes de upgrade |
 | `captain-definition` | Deploy direto do GitHub no CapRover (compila na VPS) |
 | `.github/workflows/open-image.yml` | Publicação da imagem no GHCR |
 
-O restante do repositório é o MinIO original, sem alterações.
+O restante do repositório é o MinIO original, com correções para compilar e
+passar nos testes com Go 1.26.
 
 ---
 
