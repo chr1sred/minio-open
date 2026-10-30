@@ -29,3 +29,6 @@ jobs:
       - name: Run govulncheck
         run: govulncheck -show verbose ./...
         shell: bash
+      - name: Run govulncheck (vendored console)
+        run: cd third_party/console && govulncheck ./...
+        shell: bash
