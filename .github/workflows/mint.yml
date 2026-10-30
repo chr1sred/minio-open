@@ -16,13 +16,11 @@ permissions:
 
 jobs:
   mint-test:
-    runs-on: mint
-    timeout-minutes: 120
+    # Originally ran on MinIO Inc's self-hosted "mint" runner, which forks
+    # don't have; the extra setup below replaces what that runner provided.
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
-      - name: cleanup #https://github.com/actions/checkout/issues/273
-        run: |
-          sudo -S rm -rf ${GITHUB_WORKSPACE}
-          mkdir ${GITHUB_WORKSPACE}
       - name: checkout-step
         uses: actions/checkout@v4
 
@@ -34,6 +32,20 @@ jobs:
       - name: github sha short
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: prepare runner
+        run: |
+          # nginx in the test clusters also listens on [::]
+          sudo sysctl net.ipv6.conf.all.disable_ipv6=0
+          sudo sysctl net.ipv6.conf.default.disable_ipv6=0
+          # standalone docker-compose (the scripts call `docker-compose`)
+          sudo curl -sSfL -o /usr/local/bin/docker-compose \
+            https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64
+          sudo chmod +x /usr/local/bin/docker-compose
+          # the multipart test reaches both sites by name from the host
+          echo "127.0.0.1 site1-nginx site2-nginx" | sudo tee -a /etc/hosts
+          # checksum verifier used by the multipart test
+          go build -o .github/workflows/multipart/s3-check-md5 ./docs/debugging/s3-check-md5
 
       - name: build-minio
         run: |

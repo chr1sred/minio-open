@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Entrypoint da imagem MinIO Open (Dockerfile.open).
+# Entrypoint da imagem MinIO Open (Dockerfile).
 #
 #   docker run minio-open                -> minio server $MINIO_VOLUMES $MINIO_OPTS
 #   docker run minio-open server /x ...  -> minio server /x ...

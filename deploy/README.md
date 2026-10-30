@@ -227,7 +227,7 @@ Só exclua o app antigo depois de testar os bots existentes.
 
 ## Alternativa B — compilar na própria VPS
 
-O `captain-definition` na raiz aponta para o `Dockerfile.open`, então você pode
+O `captain-definition` na raiz aponta para o `Dockerfile`, então você pode
 criar um app comum no CapRover e usar **Implantação → GitHub** com este
 repositório e o branch `master`. Recomendações:
 
@@ -268,9 +268,9 @@ Acrescente `--build` para compilar localmente em vez de baixar a imagem.
 | `MINIO_BROWSER_SESSION_DURATION` | `12h` | Duração da sessão no console |
 | `MINIO_VOLUMES` | `/data` (só quando nenhum comando é passado) | Diretório(s) de dados. Se definida, tem prioridade sobre os argumentos de `server` |
 | `MINIO_OPTS` | `--console-address :9001` | Argumentos extras do `minio server` |
-| `MINIO_INIT_ENABLE` | `on` | `off` desativa o bootstrap |
-| `MINIO_INIT_BUCKETS` | `typebot` | Buckets a criar (separados por vírgula) |
-| `MINIO_INIT_PUBLIC_PATHS` | `typebot/public` | `bucket/prefixo` com leitura anônima (somente download) |
+| `MINIO_INIT_ENABLE` | `on` | `off` desativa o bootstrap. Sem nenhuma variável `MINIO_INIT_*` definida, ele não faz nada |
+| `MINIO_INIT_BUCKETS` | — | Buckets a criar (separados por vírgula). O template do CapRover usa `typebot` |
+| `MINIO_INIT_PUBLIC_PATHS` | — | `bucket/prefixo` com leitura anônima (somente download). O template usa `typebot/public` |
 | `MINIO_INIT_APP_USER` / `MINIO_INIT_APP_PASSWORD` | — | Usuário de aplicação a criar |
 | `MINIO_INIT_APP_BUCKETS` | = `MINIO_INIT_BUCKETS` | Buckets que esse usuário acessa |
 

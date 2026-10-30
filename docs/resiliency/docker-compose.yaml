@@ -2,7 +2,7 @@
 x-minio-common: &minio-common
   build:
     context: ../../.
-    dockerfile: Dockerfile.open
+    dockerfile: Dockerfile
   command: server --console-address ":9001" http://minio{1...4}/data{1...8}
   expose:
     - "9000"

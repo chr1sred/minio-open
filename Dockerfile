@@ -1,18 +1,83 @@
-FROM minio/minio:latest
+# MinIO Open - imagem leve, compilada a partir do codigo-fonte deste fork.
+#
+# Inclui:
+#   - minio            servidor + console admin COMPLETO (third_party/console)
+#   - minio-bootstrap  configuracao automatica pos-start (buckets, Typebot...)
+#   - mc               MinIO Client (opcional, WITH_MC=false para pular)
+#
+# Build:  docker build -t minio-open .
+# No CapRover as variaveis de ambiente do app tambem viram build-args.
+
+FROM golang:1.26-alpine AS build
 
 ARG TARGETARCH
-ARG RELEASE
+ARG WITH_MC=true
+ARG MC_VERSION=v0.0.0-20251106162529-77f82e18b540
+ARG MINIO_BUILD_DATE
+ARG MINIO_COMMIT=open
+# Limita o uso de CPU/RAM do compilador para nao derrubar VPS pequenas.
+ARG BUILD_JOBS=2
 
-RUN chmod -R 777 /usr/bin
+ENV CGO_ENABLED=0 \
+    GOTOOLCHAIN=local \
+    GOFLAGS=-trimpath \
+    GOMAXPROCS=${BUILD_JOBS} \
+    GOGC=50
 
-COPY ./minio-${TARGETARCH}.${RELEASE} /usr/bin/minio
-COPY ./minio-${TARGETARCH}.${RELEASE}.minisig /usr/bin/minio.minisig
-COPY ./minio-${TARGETARCH}.${RELEASE}.sha256sum /usr/bin/minio.sha256sum
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY third_party/console/go.mod third_party/console/go.sum third_party/console/
+RUN go mod download
 
-COPY dockerscripts/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+COPY . .
 
-ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+RUN set -eux; \
+    d="${MINIO_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
+    tag="RELEASE.$(echo "$d" | tr ':' '-').open"; \
+    pkg=github.com/minio/minio/cmd; \
+    go build -p ${BUILD_JOBS} -tags timetzdata -ldflags "-s -w \
+      -X $pkg.Version=$d \
+      -X $pkg.ReleaseTag=$tag \
+      -X $pkg.CommitID=${MINIO_COMMIT} \
+      -X $pkg.ShortCommitID=${MINIO_COMMIT} \
+      -X $pkg.CopyrightYear=$(date -u +%Y)" \
+      -o /out/minio . ; \
+    go build -p ${BUILD_JOBS} -tags timetzdata -ldflags "-s -w" -o /out/minio-bootstrap ./deploy/bootstrap
 
+RUN if [ "$WITH_MC" = "true" ]; then \
+      GOBIN=/out go install -ldflags "-s -w" github.com/minio/mc@${MC_VERSION}; \
+    fi
+
+FROM alpine:3.22
+
+LABEL org.opencontainers.image.title="MinIO Open" \
+      org.opencontainers.image.description="MinIO com console admin completo, pronto para CapRover e Typebot" \
+      org.opencontainers.image.source="https://github.com/chr1sred/minio-open" \
+      org.opencontainers.image.licenses="AGPL-3.0"
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /out/ /usr/bin/
+COPY dockerscripts/open-entrypoint.sh /usr/bin/docker-entrypoint.sh
+COPY LICENSE CREDITS /licenses/
+
+# Padroes pensados para VPS pequenas (2-4 GB RAM). Todos podem ser
+# sobrescritos pelas variaveis de ambiente do app.
+# MINIO_VOLUMES nao e definido aqui de proposito: o minio da prioridade a ele
+# sobre os argumentos de "server", o que quebraria comandos customizados.
+# O padrao /data fica no entrypoint (usado quando nenhum comando e passado).
+ENV MINIO_OPTS="--console-address :9001" \
+    MINIO_UPDATE=off \
+    MINIO_CONSOLE_LOCAL_API=on \
+    MINIO_MEMLIMIT=1GiB \
+    MINIO_SCANNER_SPEED=slow \
+    MINIO_BROWSER_SESSION_DURATION=12h \
+    MC_CONFIG_DIR=/tmp/.mc
+
+EXPOSE 9000 9001
 VOLUME ["/data"]
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1:9000/minio/health/live || exit 1
+
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 CMD ["minio"]

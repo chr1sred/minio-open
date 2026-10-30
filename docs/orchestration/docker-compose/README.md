@@ -1,4 +1,4 @@
-# Deploy MinIO on Docker Compose [![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io)  [![Docker Pulls](https://img.shields.io/docker/pulls/minio/minio.svg?maxAge=604800)](https://hub.docker.com/r/minio/minio/)
+# Deploy MinIO on Docker Compose
 
 Docker Compose allows defining and running single host, multi-container Docker applications.
 
@@ -11,7 +11,7 @@ With Compose, you use a Compose file to configure MinIO services. Then, using a 
 
 ## 2. Run Distributed MinIO on Docker Compose
 
-To deploy Distributed MinIO on Docker Compose, please download [docker-compose.yaml](https://github.com/minio/minio/blob/master/docs/orchestration/docker-compose/docker-compose.yaml?raw=true) and [nginx.conf](https://github.com/minio/minio/blob/master/docs/orchestration/docker-compose/nginx.conf?raw=true) to your current working directory. Note that Docker Compose pulls the MinIO Docker image, so there is no need to build MinIO from source when using Docker. For non-Docker deployments, MinIO community edition is now source-only and can be installed via `go install github.com/minio/minio@latest`. Then run one of the below commands
+To deploy Distributed MinIO on Docker Compose, please download [docker-compose.yaml](https://github.com/chr1sred/minio-open/blob/master/docs/orchestration/docker-compose/docker-compose.yaml?raw=true) and [nginx.conf](https://github.com/chr1sred/minio-open/blob/master/docs/orchestration/docker-compose/nginx.conf?raw=true) to your current working directory. Note that Docker Compose pulls the MinIO Open image (`ghcr.io/chr1sred/minio-open`), so there is no need to build MinIO from source when using Docker. Then run one of the below commands
 
 ### GNU/Linux and macOS
 
@@ -43,7 +43,7 @@ Distributed instances are now accessible on the host using the Minio CLI on port
 
 ### Notes
 
-* By default the Docker Compose file uses the Docker image for latest MinIO server release. You can change the image tag to pull a specific [MinIO Docker image](https://hub.docker.com/r/minio/minio/).
+* By default the Docker Compose file uses the Docker image for latest MinIO server release. You can change the image tag to pull a specific [MinIO Open image](https://github.com/chr1sred/minio-open/pkgs/container/minio-open).
 
 * There are 4 minio distributed instances created by default. You can add more MinIO services (up to total 16) to your MinIO Compose deployment. To add a service
   * Replicate a service definition and change the name of the new service appropriately.

@@ -1,6 +1,6 @@
 name: MinIO Open image
 
-# Compila a imagem Docker deste fork (Dockerfile.open) e publica em
+# Compila a imagem Docker deste fork (Dockerfile) e publica em
 # ghcr.io/<dono>/minio-open. Assim o CapRover so baixa a imagem pronta,
 # sem gastar CPU/RAM da VPS compilando Go.
 
@@ -61,7 +61,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.open
+          file: Dockerfile
           platforms: ${{ github.event.inputs.platforms || 'linux/amd64' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}

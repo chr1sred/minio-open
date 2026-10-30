@@ -157,10 +157,14 @@ func run() error {
 		return nil
 	}
 	region := env("MINIO_REGION", env("MINIO_SITE_REGION", "us-east-1"))
-	buckets := list(env("MINIO_INIT_BUCKETS", "typebot"))
-	publicPaths := list(env("MINIO_INIT_PUBLIC_PATHS", "typebot/public"))
+	buckets := list(env("MINIO_INIT_BUCKETS", ""))
+	publicPaths := list(env("MINIO_INIT_PUBLIC_PATHS", ""))
 	appUser, appPass := env("MINIO_INIT_APP_USER", ""), secretEnv("MINIO_INIT_APP_PASSWORD")
 	appBuckets := list(env("MINIO_INIT_APP_BUCKETS", strings.Join(buckets, ",")))
+	if len(buckets) == 0 && len(publicPaths) == 0 && appUser == "" {
+		logf("nothing to configure (set MINIO_INIT_BUCKETS, MINIO_INIT_PUBLIC_PATHS or MINIO_INIT_APP_USER)")
+		return nil
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

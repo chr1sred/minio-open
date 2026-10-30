@@ -90,8 +90,8 @@ Base Alpine, ~160 MB, healthcheck embutido em `/minio/health/live`.
 | `MINIO_CONSOLE_LOCAL_API` | `on` | Console fala com a API via 127.0.0.1 (novo neste fork) |
 | `MINIO_MEMLIMIT` | `1GiB` | Teto de memória; também ajusta a concorrência máxima |
 | `MINIO_SCANNER_SPEED` | `slow` | Scanner de fundo mais leve |
-| `MINIO_INIT_BUCKETS` | `typebot` | Buckets criados automaticamente |
-| `MINIO_INIT_PUBLIC_PATHS` | `typebot/public` | Prefixos com leitura anônima (somente download) |
+| `MINIO_INIT_BUCKETS` | — | Buckets criados automaticamente (o template do CapRover usa `typebot`) |
+| `MINIO_INIT_PUBLIC_PATHS` | — | Prefixos com leitura anônima, somente download (o template usa `typebot/public`) |
 | `MINIO_INIT_APP_USER` / `MINIO_INIT_APP_PASSWORD` | — | Usuário de aplicação a criar |
 
 Lista completa em [deploy/README.md](deploy/README.md#variáveis-de-ambiente).
@@ -134,7 +134,7 @@ CGO_ENABLED=0 go build -trimpath -o minio-bootstrap ./deploy/bootstrap
 Imagem Docker:
 
 ```bash
-docker build -f Dockerfile.open -t minio-open .
+docker build -f Dockerfile -t minio-open .
 ```
 
 A cada push no `master`, o workflow [`open-image.yml`](.github/workflows/open-image.yml)
@@ -153,7 +153,7 @@ publica `ghcr.io/chr1sred/minio-open:latest`.
 | `deploy/docker-compose.yml`, `deploy/.env.example` | Uso fora do CapRover |
 | `deploy/typebot.env.example` | Variáveis prontas para o Typebot |
 | `deploy/README.md` | Guia completo de implantação |
-| `Dockerfile.open`, `dockerscripts/open-entrypoint.sh` | Imagem Docker |
+| `Dockerfile`, `dockerscripts/open-entrypoint.sh` | Imagem Docker |
 | `captain-definition` | Deploy direto do GitHub no CapRover (compila na VPS) |
 | `.github/workflows/open-image.yml` | Publicação da imagem no GHCR |
 
