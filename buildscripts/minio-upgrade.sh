@@ -78,7 +78,16 @@ __init__() {
 
 	TAG=minio/minio:dev make docker
 
-	MINIO_VERSION=RELEASE.2019-12-19T22-52-26Z docker-compose \
+	# The old release image is no longer published on Docker Hub: build the
+	# release from source and wrap it in a minimal local image instead.
+	OLD_RELEASE=RELEASE.2019-12-19T22-52-26Z
+	OLD_CTX=$(mktemp -d)
+	bash buildscripts/install-minio-release.sh "${OLD_RELEASE}" "${OLD_CTX}/minio"
+	printf 'FROM alpine:3.22\nCOPY minio /usr/bin/minio\nENTRYPOINT ["/usr/bin/minio"]\n' >"${OLD_CTX}/Dockerfile"
+	docker build -q -t "minio/minio:${OLD_RELEASE}" "${OLD_CTX}"
+	rm -rf "${OLD_CTX}"
+
+	MINIO_VERSION=${OLD_RELEASE} docker-compose \
 		-f "buildscripts/upgrade-tests/compose.yml" \
 		up -d --build
 

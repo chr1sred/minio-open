@@ -247,7 +247,7 @@ func (c ChecksumType) StringFull() string {
 
 // FullObjectRequested will return if the checksum type indicates full object checksum was requested.
 func (c ChecksumType) FullObjectRequested() bool {
-	return c&(ChecksumFullObject) == ChecksumFullObject || c.Is(ChecksumCRC64NVME)
+	return c&ChecksumFullObject == ChecksumFullObject || c.Is(ChecksumCRC64NVME)
 }
 
 // IsMultipartComposite returns true if the checksum is multipart and full object was not requested.

@@ -40,8 +40,7 @@ export MINIO_PROMETHEUS_AUTH_TYPE=public
 export MINIO_KMS_SECRET_KEY=my-minio-key:OSMM+vkKUTCvQs9YL/CVMIMt43HFhkUpqJxTmGl6rYw=
 
 if [ ! -f ./mc ]; then
-	wget -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 minio server --config-dir /tmp/minio-internal --address ":9001" http://localhost:9001/tmp/minio-internal-idp1/{1...4} http://localhost:9010/tmp/minio-internal-idp1/{5...8} >/tmp/minio1_1.log 2>&1 &

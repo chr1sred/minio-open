@@ -1806,8 +1806,8 @@ func (ww *wsWriter) writeFrame(w io.Writer, f ws.Frame) error {
 	const (
 		bit0  = 0x80
 		len7  = int64(125)
-		len16 = int64(^(uint16(0)))
-		len64 = int64(^(uint64(0)) >> 1)
+		len16 = int64(^uint16(0))
+		len64 = int64(^uint64(0) >> 1)
 	)
 
 	bts := ww.tmp[:]

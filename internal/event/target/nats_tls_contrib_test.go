@@ -33,7 +33,7 @@ func TestNatsConnTLSCustomCA(t *testing.T) {
 		Enable: true,
 		Address: xnet.Host{
 			Name:      "localhost",
-			Port:      (xnet.Port(opts.Port)),
+			Port:      xnet.Port(opts.Port),
 			IsPortSet: true,
 		},
 		Subject:       "test",
@@ -56,7 +56,7 @@ func TestNatsConnTLSCustomCAHandshakeFirst(t *testing.T) {
 		Enable: true,
 		Address: xnet.Host{
 			Name:      "localhost",
-			Port:      (xnet.Port(opts.Port)),
+			Port:      xnet.Port(opts.Port),
 			IsPortSet: true,
 		},
 		Subject:           "test",
@@ -80,7 +80,7 @@ func TestNatsConnTLSClientAuthorization(t *testing.T) {
 		Enable: true,
 		Address: xnet.Host{
 			Name:      "localhost",
-			Port:      (xnet.Port(opts.Port)),
+			Port:      xnet.Port(opts.Port),
 			IsPortSet: true,
 		},
 		Subject:       "test",

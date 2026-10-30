@@ -198,7 +198,7 @@ func enforceRetentionBypassForPut(ctx context.Context, r *http.Request, oi Objec
 				byPassSet, r, cred, owner)
 			// Governance mode retention period cannot be shortened, if x-amz-bypass-governance is not set.
 			if !byPassSet {
-				if objRetention.Mode != objectlock.RetGovernance || objRetention.RetainUntilDate.Before((ret.RetainUntilDate.Time)) {
+				if objRetention.Mode != objectlock.RetGovernance || objRetention.RetainUntilDate.Before(ret.RetainUntilDate.Time) {
 					return ObjectLocked{Bucket: oi.Bucket, Object: oi.Name, VersionID: oi.VersionID}
 				}
 			}
@@ -209,7 +209,7 @@ func enforceRetentionBypassForPut(ctx context.Context, r *http.Request, oi Objec
 		case objectlock.RetCompliance:
 			// Compliance retention mode cannot be changed or shortened.
 			// https://docs.aws.amazon.com/AmazonS3/latest/dev/object-lock-overview.html#object-lock-retention-modes
-			if objRetention.Mode != objectlock.RetCompliance || objRetention.RetainUntilDate.Before((ret.RetainUntilDate.Time)) {
+			if objRetention.Mode != objectlock.RetCompliance || objRetention.RetainUntilDate.Before(ret.RetainUntilDate.Time) {
 				return ObjectLocked{Bucket: oi.Bucket, Object: oi.Name, VersionID: oi.VersionID}
 			}
 			apiErr := isPutRetentionAllowed(oi.Bucket, oi.Name,

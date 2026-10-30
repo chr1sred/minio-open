@@ -20,16 +20,7 @@ unset MINIO_KMS_KES_KEY_NAME
 export MINIO_CI_CD=1
 
 if [ ! -f ./mc ]; then
-	os="$(uname -s)"
-	arch="$(uname -m)"
-	case "${arch}" in
-	"x86_64")
-		arch="amd64"
-		;;
-	esac
-
-	wget -O mc https://dl.minio.io/client/mc/release/${os,,}-${arch,,}/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 for i in $(seq 1 4); do

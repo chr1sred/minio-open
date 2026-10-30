@@ -53,8 +53,7 @@ minio server --address ":9003" --console-address ":12000" /tmp/minio3/{1...4} >/
 site3_pid=$!
 
 if [ ! -f ./mc ]; then
-	wget -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 export MC_HOST_minio1=http://minio:minio123@localhost:9001

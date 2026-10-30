@@ -39,8 +39,7 @@ unset MINIO_KMS_KES_ENDPOINT
 unset MINIO_KMS_KES_KEY_NAME
 
 if [ ! -f ./mc ]; then
-	wget -O mc https://dl.minio.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 fi
 
 minio server -S /tmp/no-certs --address ":9001" "http://localhost:9001/tmp/multisitea/data/disterasure/xl{1...4}" \

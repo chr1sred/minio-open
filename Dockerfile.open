@@ -8,7 +8,7 @@
 # Build:  docker build -f Dockerfile.open -t minio-open .
 # No CapRover as variaveis de ambiente do app tambem viram build-args.
 
-FROM golang:1.24-alpine AS build
+FROM golang:1.26-alpine AS build
 
 ARG TARGETARCH
 ARG WITH_MC=true
@@ -62,8 +62,10 @@ COPY LICENSE CREDITS /licenses/
 
 # Padroes pensados para VPS pequenas (2-4 GB RAM). Todos podem ser
 # sobrescritos pelas variaveis de ambiente do app.
-ENV MINIO_VOLUMES=/data \
-    MINIO_OPTS="--console-address :9001" \
+# MINIO_VOLUMES nao e definido aqui de proposito: o minio da prioridade a ele
+# sobre os argumentos de "server", o que quebraria comandos customizados.
+# O padrao /data fica no entrypoint (usado quando nenhum comando e passado).
+ENV MINIO_OPTS="--console-address :9001" \
     MINIO_UPDATE=off \
     MINIO_CONSOLE_LOCAL_API=on \
     MINIO_MEMLIMIT=1GiB \

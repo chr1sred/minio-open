@@ -153,7 +153,8 @@ func run() error {
 	endpoint := env("MINIO_INIT_ENDPOINT", "127.0.0.1:9000")
 	rootUser, rootPass := secretEnv("MINIO_ROOT_USER"), secretEnv("MINIO_ROOT_PASSWORD")
 	if rootUser == "" || rootPass == "" {
-		return fmt.Errorf("MINIO_ROOT_USER and MINIO_ROOT_PASSWORD must be set")
+		logf("skipped: MINIO_ROOT_USER and MINIO_ROOT_PASSWORD are not set")
+		return nil
 	}
 	region := env("MINIO_REGION", env("MINIO_SITE_REGION", "us-east-1"))
 	buckets := list(env("MINIO_INIT_BUCKETS", "typebot"))

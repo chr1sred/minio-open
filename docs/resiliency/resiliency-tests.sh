@@ -250,22 +250,22 @@ function test_resiliency_healing_truncated_parts() {
 	fi
 
 	# Truncate single part -- status still green
-	OUTPUT=$(docker exec resiliency-minio1-1 /bin/sh -c "truncate --size=10K /data$((DATA_DRIVE))/test-bucket/initial-data/$FILE/*/part.1")
+	OUTPUT=$(docker exec resiliency-minio1-1 /bin/sh -c "truncate -s 10K /data$((DATA_DRIVE))/test-bucket/initial-data/$FILE/*/part.1")
 	WANT='{ "before": { "color": "green", "missing": 0, "corrupted": 1 }, "after": { "color": "green", "missing": 0, "corrupted": 0 }, "args": {"file": "'${FILE}'", "dir": "'${DIR}'"} }'
 	verify_resiliency_healing "${FUNCNAME[0]}" "${WANT}"
 
 	# Truncate two parts -- status becomes yellow (2 missing)
-	OUTPUT=$(docker exec resiliency-minio2-1 /bin/sh -c "truncate --size=10K /data{$((DATA_DRIVE))..$((DATA_DRIVE + 1))}/test-bucket/initial-data/$FILE/*/part.1")
+	OUTPUT=$(docker exec resiliency-minio2-1 /bin/sh -c "for d in \$(seq $((DATA_DRIVE)) $((DATA_DRIVE + 1))); do truncate -s 10K /data\$d/test-bucket/initial-data/$FILE/*/part.1; done")
 	WANT='{ "before": { "color": "yellow", "missing": 0, "corrupted": 2 }, "after": { "color": "green", "missing": 0, "corrupted": 0 }, "args": {"file": "'${FILE}'", "dir": "'${DIR}'"} }'
 	verify_resiliency_healing "${FUNCNAME[0]}" "${WANT}"
 
 	# Truncate three parts -- status becomes red (3 missing)
-	OUTPUT=$(docker exec resiliency-minio3-1 /bin/sh -c "truncate --size=10K /data{$((DATA_DRIVE))..$((DATA_DRIVE + 2))}/test-bucket/initial-data/$FILE/*/part.1")
+	OUTPUT=$(docker exec resiliency-minio3-1 /bin/sh -c "for d in \$(seq $((DATA_DRIVE)) $((DATA_DRIVE + 2))); do truncate -s 10K /data\$d/test-bucket/initial-data/$FILE/*/part.1; done")
 	WANT='{ "before": { "color": "red", "missing": 0, "corrupted": 3 }, "after": { "color": "green", "missing": 0, "corrupted": 0 }, "args": {"file": "'${FILE}'", "dir": "'${DIR}'"} }'
 	verify_resiliency_healing "${FUNCNAME[0]}" "${WANT}"
 
 	# Truncate four parts -- status becomes red (4 missing)
-	OUTPUT=$(docker exec resiliency-minio4-1 /bin/sh -c "truncate --size=10K /data{$((DATA_DRIVE))..$((DATA_DRIVE + 3))}/test-bucket/initial-data/$FILE/*/part.1")
+	OUTPUT=$(docker exec resiliency-minio4-1 /bin/sh -c "for d in \$(seq $((DATA_DRIVE)) $((DATA_DRIVE + 3))); do truncate -s 10K /data\$d/test-bucket/initial-data/$FILE/*/part.1; done")
 	WANT='{ "before": { "color": "red", "missing": 0, "corrupted": 4 }, "after": { "color": "green", "missing": 0, "corrupted": 0 }, "args": {"file": "'${FILE}'", "dir": "'${DIR}'"} }'
 	verify_resiliency_healing "${FUNCNAME[0]}" "${WANT}"
 }
@@ -279,12 +279,12 @@ function induce_bitrot() {
 	UUID=$(echo $UUID | cut -d " " -f 9 | cut -d "/" -f 6)
 
 	# Determine head and tail size of file where we will introduce bitrot
-	FILE_SIZE=$(docker exec resiliency-minio$NODE-1 /bin/sh -c "stat --printf="%s" $DIR/test-bucket/initial-data/$FILE/$UUID/part.1")
+	FILE_SIZE=$(docker exec resiliency-minio$NODE-1 /bin/sh -c "stat -c %s $DIR/test-bucket/initial-data/$FILE/$UUID/part.1")
 	TAIL_SIZE=$((FILE_SIZE - 32 * 2))
 
 	# Extract head and tail of file
-	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/initial-data/$FILE/$UUID/part.1 | head --bytes 32 > /tmp/head")
-	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/initial-data/$FILE/$UUID/part.1 | tail --bytes $TAIL_SIZE > /tmp/tail")
+	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/initial-data/$FILE/$UUID/part.1 | head -c 32 > /tmp/head")
+	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/initial-data/$FILE/$UUID/part.1 | tail -c $TAIL_SIZE > /tmp/tail")
 
 	# Corrupt the part by writing head twice followed by tail
 	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat /tmp/head /tmp/head /tmp/tail > $DIR/test-bucket/initial-data/$FILE/$UUID/part.1")
@@ -338,12 +338,12 @@ function induce_bitrot_for_xlmeta() {
 	local FILE=$3
 
 	# Determine head and tail size of file where we will introduce bitrot
-	FILE_SIZE=$(docker exec resiliency-minio$NODE-1 /bin/sh -c "stat --printf="%s" $DIR/test-bucket/inlined-data/$FILE/xl.meta")
+	FILE_SIZE=$(docker exec resiliency-minio$NODE-1 /bin/sh -c "stat -c %s $DIR/test-bucket/inlined-data/$FILE/xl.meta")
 	HEAD_SIZE=$((FILE_SIZE - 32 * 2))
 
 	# Extract head and tail of file
-	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/inlined-data/$FILE/xl.meta | head --bytes $HEAD_SIZE > /head")
-	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/inlined-data/$FILE/xl.meta | tail --bytes 32 > /tail")
+	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/inlined-data/$FILE/xl.meta | head -c $HEAD_SIZE > /head")
+	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat $DIR/test-bucket/inlined-data/$FILE/xl.meta | tail -c 32 > /tail")
 
 	# Corrupt xl.meta by writing head followed by tail twice
 	$(docker exec resiliency-minio$NODE-1 /bin/sh -c "cat /head /tail tmp/tail > $DIR/test-bucket/inlined-data/$FILE/xl.meta")
@@ -393,7 +393,7 @@ function test_resiliency_healing_inlined_metadata() {
 
 function main() {
 	if [ ! -f ./mc ]; then
-		wget -q https://dl.minio.io/client/mc/release/linux-amd64/mc && chmod +x ./mc
+		bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" ./mc
 	fi
 
 	export MC_HOST_myminio=http://minioadmin:minioadmin@localhost:9000

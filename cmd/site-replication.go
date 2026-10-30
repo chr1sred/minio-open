@@ -2648,7 +2648,7 @@ func getPriorityHelper(replicationConfig replication.Config) int {
 	return maxPrio + 10
 }
 
-// returns a slice with site names participating in site replciation but unspecified while adding
+// returns a slice with site names participating in site replication but unspecified while adding
 // a new site.
 func getMissingSiteNames(oldDeps, newDeps set.StringSet, currSites []madmin.PeerInfo) []string {
 	diff := oldDeps.Difference(newDeps)
@@ -3734,7 +3734,7 @@ func (c *SiteReplicationSys) SiteReplicationMetaInfo(ctx context.Context, objAPI
 				bms.ExpiryLCConfig = &expLclCfgStr
 				// if all non expiry rules only, ExpiryUpdatedAt would be nil
 				if meta.lifecycleConfig.ExpiryUpdatedAt != nil {
-					bms.ExpiryLCConfigUpdatedAt = *(meta.lifecycleConfig.ExpiryUpdatedAt)
+					bms.ExpiryLCConfigUpdatedAt = *meta.lifecycleConfig.ExpiryUpdatedAt
 				}
 			}
 

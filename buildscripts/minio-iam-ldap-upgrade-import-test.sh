@@ -14,7 +14,6 @@
 # `_MINIO_LDAP_TEST_SERVER`.
 
 OLD_VERSION=RELEASE.2024-03-26T22-10-45Z
-OLD_BINARY_LINK=https://dl.min.io/server/minio/release/linux-amd64/archive/minio.${OLD_VERSION}
 
 __init__() {
 	if which curl &>/dev/null; then
@@ -35,9 +34,8 @@ __init__() {
 	fi
 
 	if [ ! -x ./minio.${OLD_VERSION} ]; then
-		echo "Downloading minio.${OLD_VERSION} binary"
-		curl -o minio.${OLD_VERSION} ${OLD_BINARY_LINK}
-		chmod +x minio.${OLD_VERSION}
+		echo "Building minio.${OLD_VERSION} binary from source"
+		bash "$(git rev-parse --show-toplevel)/buildscripts/install-minio-release.sh" "${OLD_VERSION}" ./minio.${OLD_VERSION}
 	fi
 
 	if [ -z "$_MINIO_LDAP_TEST_SERVER" ]; then

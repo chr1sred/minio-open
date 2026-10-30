@@ -50,8 +50,7 @@ go install -v github.com/minio/mc@master
 cp -a $(go env GOPATH)/bin/mc ./mc
 
 if [ ! -f mc.RELEASE.2021-03-12T03-36-59Z ]; then
-	wget -q -O mc.RELEASE.2021-03-12T03-36-59Z https://dl.minio.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2021-03-12T03-36-59Z &&
-		chmod +x mc.RELEASE.2021-03-12T03-36-59Z
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc.RELEASE.2021-03-12T03-36-59Z RELEASE.2021-03-12T03-36-59Z
 fi
 
 minio server --address 127.0.0.1:9001 "http://127.0.0.1:9001/tmp/multisitea/data/disterasure/xl{1...4}" \

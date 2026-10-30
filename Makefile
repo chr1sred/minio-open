@@ -9,6 +9,7 @@ VERSION ?= $(shell git describe --tags)
 REPO ?= quay.io/minio
 TAG ?= $(REPO)/minio:$(VERSION)
 
+GOLANGCI_VERSION ?= v2.15.0
 GOLANGCI_DIR = .bin/golangci/$(GOLANGCI_VERSION)
 GOLANGCI = $(GOLANGCI_DIR)/golangci-lint
 
@@ -23,7 +24,7 @@ help: ## print this help
 
 getdeps: ## fetch necessary dependencies
 	@mkdir -p ${GOPATH}/bin
-	@echo "Installing golangci-lint" && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOLANGCI_DIR)
+	@echo "Installing golangci-lint $(GOLANGCI_VERSION)" && GOBIN=$(PWD)/$(GOLANGCI_DIR) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
 crosscompile: ## cross compile minio
 	@(env bash $(PWD)/buildscripts/cross-compile.sh)
@@ -211,9 +212,9 @@ docker-hotfix: hotfix-push checks ## builds minio docker container with hotfix t
 	@echo "Building minio docker image '$(TAG)'"
 	@docker build -q --no-cache -t $(TAG) --build-arg RELEASE=$(VERSION) . -f Dockerfile.hotfix
 
-docker: build ## builds minio docker container
+docker: build ## builds minio docker container from source (Dockerfile.open)
 	@echo "Building minio docker image '$(TAG)'"
-	@docker build -q --no-cache -t $(TAG) . -f Dockerfile
+	@docker build -q --no-cache -t $(TAG) --build-arg WITH_MC=false . -f Dockerfile.open
 
 test-resiliency: build
 	@echo "Running resiliency tests"

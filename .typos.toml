@@ -26,6 +26,8 @@ extend-ignore-re = [
 "HashiCorp" = "HashiCorp"
 
 [type.go.extend-identifiers]
+"cpy" = "cpy"
+"sterr" = "sterr"
 "bui" = "bui"
 "dm2nd" = "dm2nd"
 "ot" = "ot"

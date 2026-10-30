@@ -266,7 +266,7 @@ Acrescente `--build` para compilar localmente em vez de baixar a imagem.
 | `MINIO_SCANNER_SPEED` | `slow` | Scanner de fundo (`fastest`, `fast`, `default`, `slow`, `slowest`) |
 | `MINIO_UPDATE` | `off` | Desliga a checagem de atualização em dl.min.io |
 | `MINIO_BROWSER_SESSION_DURATION` | `12h` | Duração da sessão no console |
-| `MINIO_VOLUMES` | `/data` | Diretório(s) de dados |
+| `MINIO_VOLUMES` | `/data` (só quando nenhum comando é passado) | Diretório(s) de dados. Se definida, tem prioridade sobre os argumentos de `server` |
 | `MINIO_OPTS` | `--console-address :9001` | Argumentos extras do `minio server` |
 | `MINIO_INIT_ENABLE` | `on` | `off` desativa o bootstrap |
 | `MINIO_INIT_BUCKETS` | `typebot` | Buckets a criar (separados por vírgula) |

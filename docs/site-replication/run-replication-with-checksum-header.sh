@@ -71,8 +71,7 @@ echo "done"
 
 if [ ! -f ./mc ]; then
 	echo -n "Downloading MinIO client ..."
-	wget -O mc https://dl.min.io/client/mc/release/linux-amd64/mc &&
-		chmod +x mc
+	bash "$(git rev-parse --show-toplevel)/buildscripts/install-mc.sh" mc
 	echo "done"
 fi
 
