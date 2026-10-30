@@ -178,7 +178,7 @@ dependency on MinIO Inc. servers:
 | IAM (LDAP, OpenID, etcd) | Login and policies |
 | Healing, resiliency, replication | Disk and site recovery |
 | Upgrade | Upgrading from a 2019 release, built from source |
-| Mint | Full S3 compatibility |
+| Mint (manual, from the Actions tab) | Full S3 compatibility |
 | Dependency review, vulncheck | Vulnerable dependencies |
 
 ---

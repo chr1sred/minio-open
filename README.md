@@ -179,7 +179,7 @@ depender de servidores da MinIO Inc.:
 | IAM (LDAP, OpenID, etcd) | Login e políticas |
 | Healing, resiliência, replicação | Recuperação de discos e sites |
 | Upgrade | Atualização a partir de uma versão de 2019, compilada do código-fonte |
-| Mint | Compatibilidade S3 completa |
+| Mint (manual, na aba Actions) | Compatibilidade S3 completa |
 | Dependency review, vulncheck | Vulnerabilidades em dependências |
 
 ---
