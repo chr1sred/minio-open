@@ -25,6 +25,9 @@ fi
 
 export RELEASE=RELEASE.2023-08-29T23-07-35Z
 
+# Old release images are no longer published: build this one from source.
+bash "$(git rev-parse --show-toplevel)/buildscripts/build-release-image.sh" "${RELEASE}" "quay.io/minio/minio:${RELEASE}"
+
 docker-compose -f docker-compose-site1.yaml up -d
 docker-compose -f docker-compose-site2.yaml up -d
 

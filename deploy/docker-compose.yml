@@ -8,7 +8,7 @@ services:
   minio:
     build:
       context: ..
-      dockerfile: Dockerfile.open
+      dockerfile: Dockerfile
     image: ${MINIO_IMAGE:-ghcr.io/chr1sred/minio-open:latest}
     restart: unless-stopped
     ports:
