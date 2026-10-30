@@ -216,6 +216,22 @@ tests on Go 1.26.
 
 ---
 
+## Security
+
+- **Up-to-date dependencies:** the server, the console and the helper tools
+  use patched library versions (e.g. `golang.org/x/crypto` 0.58 and Apache
+  Thrift 0.25).
+- **Automatic checks:** on every change, CI runs `govulncheck` on the server
+  and the console, and *dependency review* blocks new dependencies with known
+  vulnerabilities. Dependabot alerts are enabled.
+- **Safe deployment:** use HTTPS, strong passwords and the application user
+  created by the bootstrap (never the root account) for Typebot and other
+  apps.
+- **Found an issue?** Report it privately via
+  **Security → Report a vulnerability**. Details in [SECURITY.md](SECURITY.md).
+
+---
+
 ## License and credits
 
 - Source code: [GNU AGPLv3](LICENSE), same as MinIO. If you offer this

@@ -217,6 +217,22 @@ passar nos testes com Go 1.26.
 
 ---
 
+## Segurança
+
+- **Dependências em dia:** o servidor, o console e as ferramentas auxiliares
+  usam versões corrigidas das bibliotecas (por exemplo, `golang.org/x/crypto`
+  0.58 e Apache Thrift 0.25).
+- **Verificação automática:** a cada mudança, o CI roda o `govulncheck` no
+  servidor e no console, e o *dependency review* bloqueia dependências novas
+  com vulnerabilidades conhecidas. Os alertas do Dependabot ficam ativos.
+- **Boas práticas na instalação:** use HTTPS, senhas fortes e o usuário de
+  aplicação criado pelo bootstrap (nunca a conta root) no Typebot e em outros
+  apps.
+- **Encontrou um problema?** Reporte de forma privada em
+  **Security → Report a vulnerability**. Detalhes em [SECURITY.md](SECURITY.md).
+
+---
+
 ## Licença e créditos
 
 - Código-fonte: [GNU AGPLv3](LICENSE), igual ao MinIO. Ao oferecer este
