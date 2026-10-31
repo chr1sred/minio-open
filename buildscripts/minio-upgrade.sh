@@ -23,6 +23,14 @@ cleanup() {
 }
 
 verify_checksum_after_heal() {
+	# Bucket policies load in the background after startup: wait until the
+	# anonymous download works instead of hashing an AccessDenied response.
+	local i
+	for i in $(seq 1 60); do
+		[ "$(curl -s -o /dev/null -w '%{http_code}' "$2")" = "200" ] && break
+		echo "...waiting for anonymous access to $2 ($i)" && sleep 2
+	done
+
 	local sum1
 	sum1=$(curl -s "$2" | sha256sum)
 	mc admin heal --json -r "$1" >/dev/null # test after healing
